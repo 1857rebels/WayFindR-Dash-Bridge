@@ -105,6 +105,8 @@ adb install -r app/build/outputs/apk/release/WayFindR-Dash-Bridge-release.apk
    times and accept.
 2. **Start the head unit server.** In Android Auto settings, open the ⋮ menu and choose
    **Start head unit server**. Repeat this after every phone restart.
+   - On Samsung phones, Android Auto's settings are at **Settings › Connected devices ›
+     Android Auto**, then ⋮ › **Start head unit server**.
 3. **Check the driver seat.** Android Auto › Advanced › **Driver seat location** must match the
    app's seat setting (left by default).
 4. **Start the bridge.** Open **WFR Dash Bridge**, allow location / nearby devices and
@@ -112,6 +114,12 @@ adb install -r app/build/outputs/apk/release/WayFindR-Dash-Bridge-release.apk
    - The first time, Android shows a picker for the dash's Wi-Fi (`RE_*`). Choose it.
    - After that the exact name and access point are saved, and it joins without asking.
 5. **Ride.** The screen can be off. Stop the bridge from its notification or the app.
+6. **Stop the head unit server after the ride.** Android Auto settings › ⋮ ›
+   **Stop head unit server**.
+
+> [!TIP]
+> **Stop the head unit server when you're not riding.** Left running, it drains the phone's
+> battery. Start it again before the next ride.
 
 ## Riding with it
 

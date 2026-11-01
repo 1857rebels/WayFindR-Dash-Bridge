@@ -119,9 +119,12 @@ class MainActivity : Activity() {
         collapsible(root, "setup", "Phone setup", openByDefault = !BridgeService.running) {
             listOf(
                 "Android Auto settings: tap Version 10 times to turn on developer mode.",
-                "Menu ⋮ > Start head unit server. Repeat after every phone restart.",
+                "Start the head unit server: Android Auto settings > menu ⋮ > Start head unit server. " +
+                    "On Samsung: Settings > Connected devices > Android Auto > ⋮ > Start head unit server. " +
+                    "Repeat after every phone restart.",
                 "Android Auto > Advanced > Driver seat location must match the seat in Settings.",
                 "Tap Start bridge. The first time, pick the dash's RE_ Wi-Fi when Android asks.",
+                "After the ride, stop the bridge and choose ⋮ > Stop head unit server: left running, it drains the battery.",
             ).forEachIndexed { i, step -> addView(step(i + 1, step)) }
         }
 
@@ -260,7 +263,8 @@ class MainActivity : Activity() {
         }
         val tip = when {
             !running -> "The phone screen can stay off while it runs."
-            aa.startsWith("waiting") -> "Start the head unit server: Android Auto > ⋮ > Start head unit server."
+            aa.startsWith("waiting") -> "Start the head unit server: Android Auto > ⋮ > Start head unit server " +
+                "(Samsung: Settings > Connected devices > Android Auto > ⋮)."
             dash.startsWith("looking") -> "Turn on the bike. The phone joins the dash's Wi-Fi by itself."
             else -> ""
         }

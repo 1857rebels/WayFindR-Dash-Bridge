@@ -1,0 +1,16 @@
+# Gradle / Android Studio
+.gradle/
+.kotlin/
+build/
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Machine-local SDK path
+local.properties
+
+# Signing keys
+*.jks
+*.keystore

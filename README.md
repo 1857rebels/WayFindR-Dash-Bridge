@@ -1,55 +1,10 @@
 # WFR Dash Bridge (Android app)
 
-An Android app that does the Pi bridge's job on the phone itself. It needs no Pi and no wireless Android Auto dongle.
-It connects to Android Auto's own **head unit server** on the same phone, re-encodes the picture for the dash and streams it there.
-
-| Pi bridge | This app |
-|---|---|
-| Wireless AA dongle → `aa-headless` (aasdk) | `AaSession` + `AaTransport`: a head unit talking to `127.0.0.1:5277` |
-| ffmpeg: decode, crop, blur fill, status strip, x264 | `VideoPipeline`: hardware decoder → OpenGL ES composite → hardware H.264 encoder |
-| ffmpeg's probe output for "Re-centre" | `VideoPipeline.probe()`: `glReadPixels` of the same strip twice a second |
-| `dash_wifi.py` (nmcli) | `DashWifi`: joins `RE_*` as a per-app network; mobile data stays up for Maps |
-| `dash_bridge.py`, `k1g.py` | `DashSession`, `K1g`, `Rtp` (Kotlin ports; packets checked byte for byte against `k1g.py`) |
-| `/etc/default/wayfindr-pi` | The app's settings screen (`Config`) |
-
-Everything the Pi does is carried over:
-- **Layout:** the fill layout with the blurred background, the left or right seat, and `FILL_LAYOUT` (default for the left seat: 0.876,87,41).
-- **Status strip:** the clock, signal and battery strip.
-- **Route card:** the dash's route card with the turn circle, which the joystick needs.
-- **Joystick:**
-  - RIGHT zooms in, LEFT zooms out, DOWN re-centres (automatic Re-centre detection).
-  - In the dash's music mode: next, previous and play/pause.
-  - UP switches to default nav mode with Maps; DOWN switches to Alternate view with Music (Spotify). Both are saved, so the app screen and the next reconnect follow. Codes 0x06 / 0x07, seen in the dash's music mode on 2026-11-01; music-mode presses also arrive in Alternate view.
-- **Now playing:** sent to the dash's music widget.
-- **Audio:** only system audio is offered, so music and navigation voice stay on the phone and go to your Bluetooth intercom.
-
-New compared with the Pi:
-- The dash's battery icon shows the phone's real battery level and charging state.
-- When Android Auto isn't connected, a "Waiting for Android Auto" card is drawn into the same stream, so there's no second encoder.
-
-## Status
-
-**Not yet tried on the phone or the bike.** Checked on the laptop so far:
-- **The APK builds.**
-- **Dash packets** (route card, idle card, heartbeat, now playing, hostname, sequence byte) are byte-identical to the Pi's `k1g.py`. See `K1gTest`.
-- **Android Auto protocol** (`AaSessionTest`). A fake phone, run as a TLS server, completes:
-  - the version exchange and TLS handshake
-  - service discovery: 6 channels; video 800x480, margins 240x180, dpi 110; touchscreen 560x300
-  - channel open, video setup and focus
-  - video frames and acks, including a 40 KB frame split over two encrypted frames
-  - now playing, ping, a zoom-in tap at the right touchscreen point, the next-track key, and shutdown
-
-Unknowns for the first real test:
-1. Whether Android Auto's head unit server accepts a head unit from the same phone, and keeps projecting with the screen off. Headunit Reloaded's "self mode" suggests it does.
-2. Whether the phone's hardware encoder output at 526x300 is accepted by the dash. Wayfindr already streams 526x300 from this phone, so it should be.
-3. Whether the left-seat coordinates measured on the Pi still match. They should, as long as Android Auto lays out the same 560x300 at dpi 110.
+An Android app that connects to Android Auto's own **head unit server** on the same phone, re-encodes the picture for the 450 dash and streams it there.
 
 ## Setup on the phone
 
 1. **Install the app.**
-   ```bash
-   adb install -r pi/hus-app/app/build/outputs/apk/debug/app-debug.apk
-   ```
 2. **Turn on Android Auto's developer mode.** Open Android Auto's settings, tap **Version** 10 times and accept.
 3. **Start the head unit server.** In Android Auto settings, open the ⋮ menu and choose **Start head unit server**. Repeat this after every phone restart.
 4. **Check the driver seat.** Android Auto > Advanced > **Driver seat location** must match the app's seat setting (left by default).
@@ -58,7 +13,6 @@ Unknowns for the first real test:
    - After that the exact name and access point are saved, and it joins without asking.
 6. **Ride.** The screen can be off. The bridge runs as a foreground service with a notification; stop it from the notification or the app.
 
-**Don't run the Pi at the same time.** Two head units on one dash would fight over it.
 
 ## Settings
 
@@ -77,9 +31,6 @@ Unknowns for the first real test:
 | Video bitrate | 200000 | `VIDEO_BITRATE` |
 | Head unit server port | 5277 | — |
 
-Fixed values match the Pi's working setup: 4 fps, AA dpi 110, margins 240x180, system audio only, and Maps opened full screen 3 s after the first frame. To change them, edit `Config.kt`.
-
-The Dash Map Sizer (https://claude.ai/artifact/Fqcr6ZfJr4n6bkdYDRFwtT) produces the same `scale,x,y` values for the layout fields, and the clock strip's `x,y,size`, for each view. Its last output line says which Settings field each value goes in.
 
 ## Switching between Maps and Music on the bike
 
@@ -108,61 +59,7 @@ Good to know:
   ```bash
   adb pull /sdcard/Android/data/com.wayfindr.hus/files/captures
   ```
-- **adb test hooks** (`adb shell am broadcast -a com.wayfindr.hus.<ACTION>`):
-  - `CAPTURE`
-  - `TEST_APP --es app maps|media`
-  - `TEST_TAP --ei x N --ei y N`
-  - `TEST_VIDEO --ez on true|false`
-  - `TEST_BUTTON --ei code N`: acts as if the dash sent joystick code N (6 = UP, 7 = DOWN)
 
-## Heat and battery
-
-Measured on the S25 Ultra on 2026-11-01:
-- **Android Auto ignores the head unit's frame rate.** It sent about 51 fps on a ride and 25 fps at rest, even though the app asks for 30 and the dash shows 4.
-- **Acknowledgements can't slow it down.** With acks held back, 272 of 300 frames still arrived before the previous ack.
-- **The fix is video focus, set when the session starts.**
-  - The app gives Android Auto video focus only while a dash session runs, and keeps it for 20 s after one ends.
-  - With no dash, Android Auto draws and encodes nothing, but music info and input stay connected.
-  - Focus can't be changed mid-session: given later, it starts no video; taken away, Android Auto ends the session. So the app reconnects to Android Auto (under 1 s) when the dash comes or goes.
-- **CPU, as a share of one core:** Android Auto, Maps, the codecs and this app add up to about 40% with video on and about 3% with it off.
-- **With no dash:** the app also encodes nothing, and it backs off its Wi-Fi scans to every 16 s.
-
-On the dash, the ~40% stays, because Android Auto itself renders and encodes at full rate. Other things that help:
-- Keep the screen off.
-- Avoid fast-charging the phone in a closed mount.
-
-Test switch, to give Android Auto video without a dash:
-```bash
-adb shell am broadcast -a com.wayfindr.hus.TEST_VIDEO --ez on true
-```
-Turn it off again with `--ez on false`.
-
-## Logs
-
-- The app shows the last lines of the log on screen.
-- The log also goes to `bridge.log`, and to logcat with the tag `HusBridge`:
-  ```bash
-  adb pull /sdcard/Android/data/com.wayfindr.hus/files/bridge.log
-  ```
-  ```bash
-  adb logcat -s HusBridge
-  ```
-- Every 30 s a `stats:` line gives AA frames decoded, frames encoded, frames sent to the dash and frames the dash acked.
-- What to look for on a first run:
-  - `aa: TLS handshake complete`, `aa: service discovery from …` and `aa: first video frame`: the phone accepted the head unit.
-  - `dash: authenticated`, then `dash: decoded the first keyframe`: the dash accepted the stream.
-  - `aa: nothing on 127.0.0.1:5277 …`: the head unit server isn't running (step 3).
-
-## Build and test
-
-```bash
-cd pi/hus-app && ./gradlew assembleDebug
-```
-```bash
-cd pi/hus-app && ./gradlew testDebugUnitTest
-```
-
-It's a standalone Gradle project (AGP 9.2.1, no libraries) using the Android SDK from `local.properties`. Like the rest of `pi/`, it is gitignored and kept local.
 
 ## Files
 

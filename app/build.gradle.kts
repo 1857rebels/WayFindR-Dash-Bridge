@@ -30,6 +30,9 @@ android {
     testOptions.unitTests.isReturnDefaultValues = true
 }
 
+// APKs come out as WayFindR-Dash-Bridge-release.apk / -debug.apk.
+base.archivesName = "WayFindR-Dash-Bridge"
+
 dependencies {
     testImplementation("junit:junit:4.13.2")
 }

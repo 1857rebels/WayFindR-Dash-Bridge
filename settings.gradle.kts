@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "WayfindrHus"
+rootProject.name = "WayFindR-Dash-Bridge"
 include(":app")

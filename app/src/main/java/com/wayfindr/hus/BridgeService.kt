@@ -148,7 +148,8 @@ class BridgeService : Service() {
         registerReceiver(testReceiver, android.content.IntentFilter().apply {
             for (a in listOf("TEST_VIDEO", "CAPTURE", "TEST_APP", "TEST_TAP", "TEST_BUTTON")) addAction("com.wayfindr.hus.$a")
         }, RECEIVER_EXPORTED)
-        video = VideoPipeline({ config }, { dash != null }, ::onEncoded)
+        // TEST_VIDEO renders too, so the Re-centre finder runs without a dash (output is dropped).
+        video = VideoPipeline({ config }, { dash != null || testVideo }, ::onEncoded)
         video.start()
         wifi = DashWifi(this, config.dashPrefix, config.dashPassword, config.dashSsid, config.dashBssid) { ssid, bssid ->
             config = config.copy(dashSsid = ssid, dashBssid = bssid)

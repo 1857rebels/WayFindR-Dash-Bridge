@@ -2,7 +2,7 @@
 
 <img src="docs/icon.png" width="112" alt="WFR Dash Bridge icon">
 
-# WFR Dash Bridge
+# WayFindR Dash Bridge
 
 **Android Auto on your motorcycle's round TFT dash, straight from your phone. No extra hardware.**
 

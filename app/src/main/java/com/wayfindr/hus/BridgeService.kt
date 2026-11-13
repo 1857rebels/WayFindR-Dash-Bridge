@@ -230,6 +230,8 @@ class BridgeService : Service() {
     private fun focusLoop() {
         while (!stopping) {
             if (dash != null) lastDashAt = SystemClock.elapsedRealtime()
+            // Connected without video focus: Android Auto is fine, it just isn't asked to draw yet.
+            if (aa?.videoFocus == false) setAaStatus("connected, waiting for the dash")
             updateVideoFocus()
             Thread.sleep(1000)
         }
@@ -273,7 +275,11 @@ class BridgeService : Service() {
             val network = wifi.network
             val ssid = wifi.currentSsid
             if (network == null || ssid.isBlank()) {
-                setStatus(if (network == null) "looking for the dash Wi-Fi" else "joined the dash, waiting for its SSID")
+                setStatus(when {
+                    network != null -> "joined the dash, waiting for its SSID"
+                    !wifi.wifiOn -> "the phone's Wi-Fi is off, turn it on"
+                    else -> "looking for the dash Wi-Fi"
+                })
                 Thread.sleep(1000)
                 continue
             }

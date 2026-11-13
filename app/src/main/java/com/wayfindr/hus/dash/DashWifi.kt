@@ -1,6 +1,9 @@
 package com.wayfindr.hus.dash
 
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.MacAddress
 import android.net.Network
@@ -54,9 +57,27 @@ class DashWifi(
     @Volatile var currentSsid = ""
         private set
 
-    fun start() = main.post { wanted = true; attempt = 0; request() }
+    /** Whether the phone's Wi-Fi radio is on (apps can't turn it on; the rider has to). */
+    val wifiOn: Boolean get() = wifi.isWifiEnabled
+
+    private val appContext = context.applicationContext
+    /** Tries again straight away when Wi-Fi comes back on, instead of waiting out the back-off. */
+    private val wifiState = object : BroadcastReceiver() {
+        override fun onReceive(c: Context, i: Intent) {
+            if (isInitialStickyBroadcast) return
+            val on = i.getIntExtra(WifiManager.EXTRA_WIFI_STATE, -1) == WifiManager.WIFI_STATE_ENABLED
+            if (on && wanted && network == null) { log("dash wifi: phone Wi-Fi on"); attempt = 0; request() }
+        }
+    }
+
+    fun start() = main.post {
+        wanted = true; attempt = 0
+        appContext.registerReceiver(wifiState, IntentFilter(WifiManager.WIFI_STATE_CHANGED_ACTION), null, main)
+        request()
+    }
 
     fun stop() = main.post {
+        if (wanted) runCatching { appContext.unregisterReceiver(wifiState) }
         wanted = false
         release()
     }

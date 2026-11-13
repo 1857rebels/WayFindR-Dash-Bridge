@@ -123,6 +123,8 @@ class MainActivity : Activity() {
                     "On Samsung: Settings > Connected devices > Android Auto > ⋮ > Start head unit server. " +
                     "Repeat after every phone restart.",
                 "Android Auto > Advanced > Driver seat location must match the seat in Settings.",
+                "On Samsung, turn off Settings > Connections > Wi-Fi > ⋮ > Intelligent Wi-Fi > " +
+                    "Turn on Wi-Fi automatically: it switches Wi-Fi off a few minutes after the dash drops out.",
                 "Tap Start bridge. The first time, pick the dash's RE_ Wi-Fi when Android asks.",
                 "After the ride, stop the bridge and choose ⋮ > Stop head unit server: left running, it drains the battery.",
             ).forEachIndexed { i, step -> addView(step(i + 1, step)) }
@@ -265,6 +267,8 @@ class MainActivity : Activity() {
             !running -> "The phone screen can stay off while it runs."
             aa.startsWith("waiting") -> "Start the head unit server: Android Auto > ⋮ > Start head unit server " +
                 "(Samsung: Settings > Connected devices > Android Auto > ⋮)."
+            dash.startsWith("the phone's Wi-Fi is off") -> "Turn on the phone's Wi-Fi. If it keeps turning off, see Phone setup " +
+                "(Samsung's Turn on Wi-Fi automatically)."
             dash.startsWith("looking") -> "Turn on the bike. The phone joins the dash's Wi-Fi by itself."
             else -> ""
         }
@@ -318,6 +322,9 @@ class MainActivity : Activity() {
         } else {
             save()
             startForegroundService(Intent(this, BridgeService::class.java))
+            // Apps can't turn Wi-Fi on; Android's Wi-Fi panel is one tap. The bridge joins as soon as it's on.
+            val wm = applicationContext.getSystemService(WIFI_SERVICE) as android.net.wifi.WifiManager
+            if (!wm.isWifiEnabled) startActivity(Intent(android.provider.Settings.Panel.ACTION_WIFI))
         }
         ui.postDelayed({ refresh.run() }, 300)
     }

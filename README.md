@@ -113,6 +113,11 @@ adb install -r app/build/outputs/apk/release/WayFindR-Dash-Bridge-release.apk
    notifications, check the settings, and tap **Start bridge**.
    - The first time, Android shows a picker for the dash's Wi-Fi (`RE_*`). Choose it.
    - After that the exact name and access point are saved, and it joins without asking.
+   - If the phone's Wi-Fi is off, the app opens Android's Wi-Fi panel. Turn it on and the
+     bridge joins straight away.
+   - On Samsung phones, turn off **Settings › Connections › Wi-Fi › ⋮ › Intelligent Wi-Fi ›
+     Turn on Wi-Fi automatically**. It switches Wi-Fi off a few minutes after the dash drops
+     out, and the bridge can't turn it back on.
 5. **Ride.** The screen can be off. Stop the bridge from its notification or the app.
 6. **Stop the head unit server after the ride.** Android Auto settings › ⋮ ›
    **Stop head unit server**.
